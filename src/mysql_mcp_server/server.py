@@ -1,4 +1,5 @@
 import asyncio
+import getopt
 import logging
 import os
 import sys
@@ -15,32 +16,55 @@ logging.basicConfig(
 logger = logging.getLogger("mysql_mcp_server")
 
 def get_db_config():
-    """Get database configuration from environment variables."""
+    """Get database configuration from command line arguments or environment variables."""
+    # Parse command line arguments
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "h:p:u:d:P:", 
+                                   ["host=", "port=", "user=", "database=", "password=", "charset=", "collation="])
+    except getopt.GetoptError as err:
+        logger.error(f"Command line error: {err}")
+        sys.exit(2)
+    
+    # Initialize config with environment variables as defaults
     config = {
         "host": os.getenv("MYSQL_HOST", "localhost"),
         "port": int(os.getenv("MYSQL_PORT", "3306")),
         "user": os.getenv("MYSQL_USER"),
         "password": os.getenv("MYSQL_PASSWORD"),
         "database": os.getenv("MYSQL_DATABASE"),
-        # Add charset and collation to avoid utf8mb4_0900_ai_ci issues with older MySQL versions
-        # These can be overridden via environment variables for specific MySQL versions
         "charset": os.getenv("MYSQL_CHARSET", "utf8mb4"),
         "collation": os.getenv("MYSQL_COLLATION", "utf8mb4_unicode_ci"),
-        # Disable autocommit for better transaction control
         "autocommit": True,
-        # Set SQL mode for better compatibility - can be overridden
         "sql_mode": os.getenv("MYSQL_SQL_MODE", "TRADITIONAL")
     }
+    
+    # Override with command line arguments
+    for opt, arg in opts:
+        if opt in ("-h", "--host"):
+            config["host"] = arg
+        elif opt in ("-p", "--port"):
+            config["port"] = int(arg)
+        elif opt in ("-u", "--user"):
+            config["user"] = arg
+        elif opt in ("-P", "--password"):
+            config["password"] = arg
+        elif opt in ("-d", "--database"):
+            config["database"] = arg
+        elif opt == "--charset":
+            config["charset"] = arg
+        elif opt == "--collation":
+            config["collation"] = arg
 
     # Remove None values to let MySQL connector use defaults if not specified
     config = {k: v for k, v in config.items() if v is not None}
 
     if not all([config.get("user"), config.get("password"), config.get("database")]):
-        logger.error("Missing required database configuration. Please check environment variables:")
-        logger.error("MYSQL_USER, MYSQL_PASSWORD, and MYSQL_DATABASE are required")
+        logger.error("Missing required database configuration. Please provide via command line or environment variables:")
+        logger.error("Required: user (-u), password (-P), database (-d)")
         raise ValueError("Missing required database configuration")
 
     return config
+
 
 # Initialize server
 app = Server("mysql_mcp_server")
@@ -52,7 +76,7 @@ async def list_resources() -> list[Resource]:
     try:
         logger.info(f"Connecting to MySQL with charset: {config.get('charset')}, collation: {config.get('collation')}")
         with connect(**config) as conn:
-            logger.info(f"Successfully connected to MySQL server version: {conn.get_server_info()}")
+            logger.info(f"Successfully connected to MySQL server version: {conn.server_info}")
             with conn.cursor() as cursor:
                 cursor.execute("SHOW TABLES")
                 tables = cursor.fetchall()
@@ -90,7 +114,7 @@ async def read_resource(uri: AnyUrl) -> str:
     try:
         logger.info(f"Connecting to MySQL with charset: {config.get('charset')}, collation: {config.get('collation')}")
         with connect(**config) as conn:
-            logger.info(f"Successfully connected to MySQL server version: {conn.get_server_info()}")
+            logger.info(f"Successfully connected to MySQL server version: {conn.server_info}")
             with conn.cursor() as cursor:
                 cursor.execute(f"SELECT * FROM {table} LIMIT 100")
                 columns = [desc[0] for desc in cursor.description]
@@ -140,7 +164,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     try:
         logger.info(f"Connecting to MySQL with charset: {config.get('charset')}, collation: {config.get('collation')}")
         with connect(**config) as conn:
-            logger.info(f"Successfully connected to MySQL server version: {conn.get_server_info()}")
+            logger.info(f"Successfully connected to MySQL server version: {conn.server_info}")
             with conn.cursor() as cursor:
                 cursor.execute(query)
 
