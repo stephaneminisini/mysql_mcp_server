@@ -27,6 +27,7 @@ npx -y @smithery/cli install mysql-mcp-server --client claude
 ```
 
 ## Configuration
+### Environment Variables
 Set the following environment variables:
 ```bash
 MYSQL_HOST=localhost     # Database host
@@ -34,6 +35,28 @@ MYSQL_PORT=3306         # Optional: Database port (defaults to 3306 if not speci
 MYSQL_USER=your_username
 MYSQL_PASSWORD=your_password
 MYSQL_DATABASE=your_database
+```
+
+### Command Line Arguments
+Alternatively, you can provide database configuration via command line arguments, which take precedence over environment variables:
+
+```bash
+python server.py [options]
+
+Options:
+  -h, --host HOST        MySQL host (default: localhost)
+  -p, --port PORT        MySQL port (default: 3306)
+  -u, --user USER        MySQL username (required)
+  -P, --password PASS    MySQL password (required)
+  -d, --database DB      MySQL database name (required)
+  --charset CHARSET      MySQL charset (default: utf8mb4)
+  --collation COLLATION  MySQL collation (default: utf8mb4_unicode_ci)
+  --help                 Show help message
+```
+
+Example:
+```bash
+python server.py -h localhost -p 3306 -u myuser -P mypassword -d mydatabase
 ```
 
 ## Usage
