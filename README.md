@@ -51,7 +51,6 @@ Options:
   -d, --database DB      MySQL database name (required)
   --charset CHARSET      MySQL charset (default: utf8mb4)
   --collation COLLATION  MySQL collation (default: utf8mb4_unicode_ci)
-  --help                 Show help message
 ```
 
 Example:

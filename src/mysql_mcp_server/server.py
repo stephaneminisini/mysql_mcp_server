@@ -20,10 +20,9 @@ def get_db_config():
     # Parse command line arguments
     try:
         opts, args = getopt.getopt(sys.argv[1:], "h:p:u:d:P:", 
-                                   ["host=", "port=", "user=", "database=", "password=", "charset=", "collation=", "help"])
+                                   ["host=", "port=", "user=", "database=", "password=", "charset=", "collation="])
     except getopt.GetoptError as err:
         logger.error(f"Command line error: {err}")
-        print_usage()
         sys.exit(2)
     
     # Initialize config with environment variables as defaults
@@ -55,9 +54,6 @@ def get_db_config():
             config["charset"] = arg
         elif opt == "--collation":
             config["collation"] = arg
-        elif opt == "--help":
-            print_usage()
-            sys.exit(0)
 
     # Remove None values to let MySQL connector use defaults if not specified
     config = {k: v for k, v in config.items() if v is not None}
@@ -65,23 +61,10 @@ def get_db_config():
     if not all([config.get("user"), config.get("password"), config.get("database")]):
         logger.error("Missing required database configuration. Please provide via command line or environment variables:")
         logger.error("Required: user (-u), password (-P), database (-d)")
-        print_usage()
         raise ValueError("Missing required database configuration")
 
     return config
 
-def print_usage():
-    """Print usage information."""
-    print("Usage: python server.py [options]")
-    print("Options:")
-    print("  -h, --host HOST        MySQL host (default: localhost)")
-    print("  -p, --port PORT        MySQL port (default: 3306)")
-    print("  -u, --user USER        MySQL username (required)")
-    print("  -P, --password PASS    MySQL password (required)")
-    print("  -d, --database DB      MySQL database name (required)")
-    print("  --charset CHARSET      MySQL charset (default: utf8mb4)")
-    print("  --collation COLLATION  MySQL collation (default: utf8mb4_unicode_ci)")
-    print("  --help                 Show this help message")
 
 # Initialize server
 app = Server("mysql_mcp_server")
